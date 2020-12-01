@@ -2,18 +2,14 @@ from flask import Flask, request
 app = Flask(__name__)
 
 
-state = {
-    'q_history': [],
-    'last_q': '',
-    'qud': '',
-}
-
-
-class AgentState:
+class Agent:
     def __init__(self):
         self._q_history = []
         self._last_q = ''
         self._qud = ''
+
+    def q_history(self):
+        return self._q_history
 
     def add_to_history(self, question):
         self._q_history.append(question)
@@ -27,8 +23,12 @@ class AgentState:
     def update_qud(self, new_qud):
         self._qud = new_qud
 
+    def answer(self, question):
+        # TODO Use Chester's code to get an answer.
+        return 'Yes. ' + question
 
-agent_state = AgentState()
+
+agent = Agent()
 
 
 def preprocess(text, qud):
@@ -46,21 +46,26 @@ def get_new_qud(q_history, curr_qud, question):
 
 def get_answer(question):
     '''Return an answer, given a question. Preprocess question and update state as necessary.'''
-    preprocessed_question = preprocess(question, agent_state.qud())
+    preprocessed_question = preprocess(question, agent.qud())
 
     # Update state.
-    agent_state.add_to_history(preprocessed_question)
+    agent.add_to_history(preprocessed_question)
+    new_qud = get_new_qud(agent.q_history(),
+                          agent.qud(), preprocessed_question)
+    agent.update_qud(new_qud)
+
+    # Answer the question.
+    answer = agent.answer(preprocessed_question)
+
+    return answer
 
 
 @app.route('/ask', methods=['POST'])
 def ask():
     '''Expects a posted JSON object with a field called 'question' that contains user's question.'''
     data = request.get_json()
-
     question = data['question']
-
     answer = get_answer(question)
-
     return answer
 
 
