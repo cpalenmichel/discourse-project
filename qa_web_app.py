@@ -1,3 +1,14 @@
+'''
+Web app that receives questions in JSON objects of the form:
+{
+    "question": "What is an HMM?"
+}
+
+by a POST request to '/ask'.
+
+The app sends back an answer as a string.
+'''
+
 from flask import Flask, request
 app = Flask(__name__)
 
