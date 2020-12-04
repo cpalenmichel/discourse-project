@@ -2,7 +2,7 @@
 This module provides functions to interact with ATAM through Wit.AI.
 
 Example usage from another file:
-    from qa_wit import wit_bot, get_wit_response_intents
+    from qa_wit import wit_bot
 
     response = wit_bot.send('hello')
 
@@ -53,6 +53,7 @@ class WitBot:
 
         # Return hardcoded responses.
         if intent_name == self.GREETING_INTENT:
+            # Return a random greeting.
             return random.choice(self._responses[self.GREETING_INTENT])
 
         '''
