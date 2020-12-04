@@ -12,7 +12,6 @@ from typing import List
 
 from annoy import AnnoyIndex
 from sentence_transformers import SentenceTransformer
-from transformers import pipeline
 import spacy
 
 
@@ -49,8 +48,8 @@ class SimilaritySearch:
         with open(os.path.join(path, "index.json"), "r", encoding="utf8") as f:
             self.idx_to_sentence = {int(k): v for k, v in json.load(f).items()}
 
-    def query(self, query: str) -> List[str]:
-        indices = self.index.get_nns_by_vector(self.model.encode(query), 10)
+    def query(self, query: str, n: int = 10) -> List[str]:
+        indices = self.index.get_nns_by_vector(self.model.encode(query), n)
         return [self.idx_to_sentence[idx] for idx in indices]
 
     def query_top_chunks(
@@ -72,25 +71,6 @@ class SimilaritySearch:
         return chunks
 
 
-class QASearch:
-    """
-    Answers question by finding excerpt from context string using huggingface
-    model.
-    """
-
-    def __init__(self):
-        self.qapipe = pipeline("question-answering")
-
-    def query(self, question: str, context: str) -> str:
-        """
-        Runs question through the question answering pipeline for hugging face's
-        SQuAD model.
-        """
-        result = self.qapipe({"question": question, "context": context})
-        # Can get the offsets if needed, use 'start' and 'end' in result dict
-        return result["answer"]
-
-
 class Preprocessor:
     def __init__(self):
         self.nlp = spacy.load("en_core_web_sm")
@@ -109,6 +89,9 @@ def main():
     parser = ArgumentParser()
     parser.add_argument("text", help="A single text file to be used as the reference material")
     parser.add_argument("question", help="The question that you want answered")
+    parser.add_argument("--best", action="store_true", default=False, help="Gives most similar sentence")
+    parser.add_argument("--top-sents", action="store_true", default=False, help="Gives best n sentences")
+    parser.add_argument("--chunks", action="store_true", default=False, help="Gives best chunks with window around sents")
     parser.add_argument("--n", type=int, default=3, help="Number of chunks to use")
     parser.add_argument("--window-size", type=int, default=25)
     args = parser.parse_args()
@@ -116,24 +99,30 @@ def main():
     model = SentenceTransformer("bert-base-nli-mean-tokens")
     size = 768  # Sentence embedding size
     search = SimilaritySearch(model, size)
-    print("Preprocessing...")
-    preprocessor = Preprocessor()
-    sentences = preprocessor.preprocess_text(args.text)
+
     if not os.path.exists("data/index.ann"):
         print("Index doesn't exist. Creating an index...")
+        print("Preprocessing...")
+        preprocessor = Preprocessor()
+        sentences = preprocessor.preprocess_text(args.text)
         search.build_annoy_index(sentences)
         search.save("data")
     else:
         print("Loading the index")
         search.load("data")
 
-    chunks = search.query_top_chunks(
-        args.question, chunks=args.n, window_size=args.window_size
-    )
-    qas = QASearch()
-    for chunk in chunks:
-        answer = qas.query(args.question, chunk)
-        print("Answer: ", answer)
+    if args.best:
+        result = search.query(args.question, n=1)
+    elif args.top_sents:
+        result = search.query(args.question, n=args.n)
+    elif args.chunks:
+        result = search.query_top_chunks(
+            args.question, chunks=args.n, window_size=args.window_size
+        )
+    else:
+        raise ValueError("Need to use either best/top-sents/chunks flag")
+    for r in result:
+        print(r + "\n\n\n")
 
 
 if __name__ == "__main__":
