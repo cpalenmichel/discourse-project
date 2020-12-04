@@ -6,49 +6,29 @@ Example usage from another file:
 
     response = wit_bot.send('hello')
 
-    intents = get_wit_response_intents(response)
-    print(intents)
+    print(response)
 
 This will produce output like:
-    [{'id': '470742860992984', 'name': 'greeting', 'confidence': .998}, ...]
+    Hello!
 '''
 
 from wit import Wit
+import random
 
 
-def get_wit_response_text(wit_response):
-    '''
-    Convenience function to get text out of Wit.ai response dictionary.
-
-    This is just the message that was sent to Wit.AI.
-    '''
-    return wit_response['text']
-
-
-def get_wit_response_intents(wit_response):
-    '''
-    Convenience function to get intents out of Wit.ai response dictionary.
-    '''
-    return wit_response['intents']
-
-
-def get_wit_response_entities(wit_response):
-    '''
-    Convenience function to get entities out of Wit.ai response dictionary.
-    '''
-    return wit_response['entities']
-
-
-def get_wit_response_traits(wit_response):
-    '''
-    Convenience function to get traits out of Wit.ai response dictionary.
-    '''
-    return wit_response['traits']
+def get_most_likely_intent(wit_response):
+    return wit_response['intents'][0]
 
 
 class WitBot:
+    GREETING_INTENT = 'greeting'
+
     def __init__(self, client_access_token):
         self._wit = Wit(client_access_token)
+        # Provides a dictionary from intentions to hardcoded responses.
+        self._responses = {
+            self.GREETING_INTENT: ['Hello!', 'Hi!', 'Hello.', 'Hi.']
+        }
 
     def send(self, message):
         '''
@@ -66,7 +46,22 @@ class WitBot:
             }
         '''
         response = self._wit.message(message)
-        return response
+        intent = get_most_likely_intent(response)
+
+        intent_name = intent['name']
+        intent_confidence = intent['confidence']
+
+        # Return hardcoded responses.
+        if intent_name == self.GREETING_INTENT:
+            return random.choice(self._responses[self.GREETING_INTENT])
+
+        '''
+        ...TODO return whatever other message we think is right,
+        either by hardcoding more responses or by performing a text
+        search.
+        '''
+
+        return "I just don't know what to say."
 
 
 _atam_client_access_token = 'WVYVUAYCY4BVTT5JYA6TAWLYCZQXHEHH'
