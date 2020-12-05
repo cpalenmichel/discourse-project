@@ -1,39 +1,49 @@
 '''
-Script to test qa_web_app.py. Sends a POST request to the server and prints the response.
+Script to test qa_web_app.py. Starts a REPL where messages are sent to ATAM.
 
 To run this, first start the server by running qa_web_app.py. Then:
 
-python test_qa_web_app.py [-h] [--question QUESTION] [--port PORT]
+python test_qa_web_app.py [-h] [--port PORT]
 
-Both arguments are optional and default to:
+Port argument are optional and defaults to 5000.
     question - What is an HMM?
-    port - 5000 (this must be the same as the port that the server is running on)
 '''
 
 import argparse
 import requests
 
+HEADERS = {'Content-Type': 'application/json'}
+PROMPT = '> '
 
-def main(question, port):
-    headers = {'Content-Type': 'application/json'}
-    data = {
-        'question': question,
-    }
 
-    response = requests.post(
-        f'http://localhost:{port}/ask', headers=headers, json=data)
+def repl(port):
+    print('Type a message and press enter to send to ATAM. Send `exit` to quit.')
+    try:
+        text = input(PROMPT)
+    except:
+        exit(0)
 
-    print(response.text)
+    while text.lower() != 'exit':
+        data = {
+            'question': text,
+        }
+
+        response = requests.post(
+            f'http://localhost:{port}/ask', headers=HEADERS, json=data)
+
+        print(response.text)
+        try:
+            text = input(PROMPT)
+        except:
+            exit(0)
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument('--question', help='Question to send to dialog server.', required=False, type=str,
-                        default='What is an HMM?')
     parser.add_argument(
         '--port', help='Port which dialog server is running on. Defaults to 5000.', required=False, type=int,
         default=5000)
 
     args = parser.parse_args()
 
-    main(args.question, args.port)
+    repl(args.port)
