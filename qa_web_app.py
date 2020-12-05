@@ -8,16 +8,31 @@ by a POST request to '/ask'.
 
 The app sends back an answer as a string.
 '''
-
+import random
 from flask import Flask, request
+from wit import Wit
+
 app = Flask(__name__)
 
 
 class Agent:
-    def __init__(self):
+    GREETING_INTENT = 'greeting'
+
+    def __init__(self, atam_client_access_token, debug=True):
+        # Set debug mode to indicate whether to log full response from wit.ai
+        self._debug = debug
         self._q_history = []
         self._last_q = ''
         self._qud = ''
+        self._wit = Wit(atam_client_access_token)
+        # Provides a dictionary from intentions to hardcoded responses.
+        self._responses = {
+            self.GREETING_INTENT: ['Hello!', 'Hi!', 'Hello.', 'Hi.']
+        }
+
+    @staticmethod
+    def get_most_likely_intent(wit_response):
+        return wit_response['intents'][0]
 
     def q_history(self):
         return self._q_history
@@ -35,11 +50,35 @@ class Agent:
         self._qud = new_qud
 
     def answer(self, question):
-        # TODO Use Chester's code to get an answer.
+        # TODO use dialogue state and QUD and QA to produce good answers.
+
+        # Send the preprocessed question to wit.ai
+        response = self._wit.message(question)
+
+        # Get the most likely intent.
+        intent = Agent.get_most_likely_intent(response)
+        intent_name = intent['name']
+        intent_confidence = intent['confidence']
+
+        # Log the full response from wit.ai if in debug mode.
+        if self._debug:
+            print(response)
+
+        # Return hardcoded responses.
+        if intent_name == self.GREETING_INTENT:
+            # Return a random greeting.
+            return random.choice(self._responses[self.GREETING_INTENT])
+
+        '''
+        ...TODO return whatever other message we think is right,
+        either by hardcoding more responses or by performing a text
+        search.
+        '''
+
         return 'Yes. ' + question
 
 
-agent = Agent()
+agent = Agent(atam_client_access_token='WVYVUAYCY4BVTT5JYA6TAWLYCZQXHEHH')
 
 
 def preprocess(text, qud):
