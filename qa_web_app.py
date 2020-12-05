@@ -12,7 +12,9 @@ from wit import Wit
 import random
 import json
 from flask import Flask, request
+from flask_cors import CORS
 app = Flask(__name__)
+CORS(app)
 
 
 class Agent:
