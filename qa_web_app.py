@@ -8,10 +8,10 @@ by a POST request to '/ask'.
 
 The app sends back an answer as a string.
 '''
-import random
-from flask import Flask, request
 from wit import Wit
-
+import random
+import json
+from flask import Flask, request
 app = Flask(__name__)
 
 
@@ -29,6 +29,13 @@ class Agent:
         self._responses = {
             self.GREETING_INTENT: ['Hello!', 'Hi!', 'Hello.', 'Hi.']
         }
+
+    def __str__(self):
+        return json.dumps({
+            'q_history': self._q_history,
+            'last_q': self._last_q,
+            'qud': self._qud,
+        })
 
     @staticmethod
     def get_most_likely_intent(wit_response):
@@ -62,7 +69,11 @@ class Agent:
 
         # Log the full response from wit.ai if in debug mode.
         if self._debug:
+            print('Agent State:')
+            print(self)
             print(response)
+
+        self._last_q = question
 
         # Return hardcoded responses.
         if intent_name == self.GREETING_INTENT:
