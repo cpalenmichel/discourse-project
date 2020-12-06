@@ -14,23 +14,27 @@ const ChatState = (props) => {
   const respondTo = async (message) => {
     const { text } = message;
 
-    const res = await axios.post(
-      'http://localhost:5000/ask',
-      {
+    try {
+      const res = await axios.post('http://localhost:5000/ask', {
         question: text,
-      },
-      {
-        headers: { 'Access-Control-Allow-Origin': '*' },
-      }
-    );
+      });
 
-    dispatch({
-      type: ADD_MESSAGE,
-      payload: {
-        text: res.data,
-        sender: 'ATAM',
-      },
-    });
+      dispatch({
+        type: ADD_MESSAGE,
+        payload: {
+          text: res.data,
+          sender: 'ATAM',
+        },
+      });
+    } catch (error) {
+      dispatch({
+        type: ADD_MESSAGE,
+        payload: {
+          text: `Sorry. I'm having trouble talking to my server. It's saying "${error}"`,
+          sender: 'ATAM',
+        },
+      });
+    }
   };
 
   const addMessage = async (message) => {

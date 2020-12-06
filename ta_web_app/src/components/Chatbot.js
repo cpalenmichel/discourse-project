@@ -1,13 +1,18 @@
-import React, { useContext } from 'react';
+import React, { useContext, useRef, useEffect } from 'react';
 import { Button, Form, InputGroup } from 'react-bootstrap';
 import Message from './Message';
 import ChatContext from '../context/message/chatContext';
 import nextId from 'react-id-generator';
 
 const Chatbot = () => {
+  const messagesEndRef = useRef(null);
   const chatContext = useContext(ChatContext);
 
   const { addMessage, messages } = chatContext;
+
+  useEffect(() => {
+    messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
+  });
 
   const onSubmit = (e) => {
     e.preventDefault();
@@ -42,6 +47,7 @@ const Chatbot = () => {
                 ></Message>
               );
             })}
+            <div ref={messagesEndRef} />
           </div>
         </div>
         <Form onSubmit={onSubmit}>
