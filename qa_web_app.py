@@ -18,7 +18,7 @@ CORS(app)
 
 
 class Agent:
-    GREETING_INTENT = 'greeting'
+    QUESTION_INTENT = 'question'
 
     def __init__(self, atam_client_access_token, debug=True):
         # Set debug mode to indicate whether to log full response from wit.ai
@@ -28,9 +28,8 @@ class Agent:
         self._qud = ''
         self._wit = Wit(atam_client_access_token)
         # Provides a dictionary from intentions to hardcoded responses.
-        self._responses = {
-            self.GREETING_INTENT: ['Hello!', 'Hi!', 'Hello.', 'Hi.']
-        }
+        with open('responses.json', encoding='utf8') as fp:
+            self._hardcoded_responses = json.load(fp)
 
     def __str__(self):
         return json.dumps({
@@ -41,7 +40,15 @@ class Agent:
 
     @staticmethod
     def get_most_likely_intent(wit_response):
-        return wit_response['intents'][0]
+        try:
+            return wit_response['intents'][0]
+        except IndexError:
+            # If no intent can be identified, return the fallback intent.
+            return {
+                'id': -1,
+                'name': 'fallback',
+                'confidence': 1.0,
+            }
 
     def q_history(self):
         return self._q_history
@@ -78,9 +85,11 @@ class Agent:
         self._last_q = question
 
         # Return hardcoded responses.
-        if intent_name == self.GREETING_INTENT:
-            # Return a random greeting.
-            return random.choice(self._responses[self.GREETING_INTENT])
+        if intent_name in self._hardcoded_responses:
+            return random.choice(self._hardcoded_responses[intent_name])
+        elif intent_name == self.QUESTION_INTENT:
+            # TODO Student asked a question. Do a search for a relevant answer.
+            pass
 
         '''
         ...TODO return whatever other message we think is right,
