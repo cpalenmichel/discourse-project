@@ -19,6 +19,7 @@ CORS(app)
 
 class Agent:
     QUESTION_INTENT = 'question'
+    EXIT_INTENT = 'exit'
 
     def __init__(self, atam_client_access_token, debug=True):
         # Set debug mode to indicate whether to log full response from wit.ai
@@ -87,6 +88,9 @@ class Agent:
         # Return hardcoded responses.
         if intent_name in self._hardcoded_responses:
             return random.choice(self._hardcoded_responses[intent_name])
+        elif intent_name == self.EXIT_INTENT:
+            # TODO handle quitting behavior
+            pass
         elif intent_name == self.QUESTION_INTENT:
             # TODO Student asked a question. Do a search for a relevant answer.
             pass

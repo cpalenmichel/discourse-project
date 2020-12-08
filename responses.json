@@ -1,5 +1,6 @@
 {
   "greeting": ["Hello!", "Hi!", "Hello.", "Hi."],
   "grades": ["Sorry, I can't help you with grades. Please speak with a TA."],
+  "exit": ["Ok, goodbye!"],
   "fallback": ["Sorry, I'm confused by that. I don't know how to respond."]
 }
