@@ -59,7 +59,11 @@ const Chatbot = () => {
               autoComplete='off'
             />
             <InputGroup.Append>
-              <Button variant='primary' type='submit'>
+              <Button
+                variant='primary'
+                type='submit'
+                style={{ color: 'white' }}
+              >
                 Submit
               </Button>
             </InputGroup.Append>

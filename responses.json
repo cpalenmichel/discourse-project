@@ -1,11 +1,12 @@
 {
   "greeting": ["Hello!", "Hi!", "Hello.", "Hi."],
   "grades": ["Sorry, I can't help you with grades. Please speak with a TA."],
+  "assignment": ["Sorry, I can't talk about specific assignments. Please speak with a TA."],
   "exit": ["Ok, goodbye!"],
   "fallback": ["Sorry, I'm confused by that. I don't know how to respond."],
   "name": ["I'm ATAM! A TA chatbot :)", "My name is ATAM, what's yours?"],
   "personal": ["pretty well, how are you?", "not too bad, what can I help you with?",
-    "Really good actually, what can i do for you?"],
+    "Really good actually, what can i do for you?", "I am doing great!"],
   "weather": ["Yeah, it's sunny here! What can I help you with?",
     "It's kinda rainy where I am. What can I do for you?",
   "I don't experience weather much since I'm just a bot. What can I help you with today?"],

@@ -40,7 +40,6 @@ class Agent:
     INTRO = "intro"
     NEUTRAL = "neutral"
 
-
     def __init__(self, atam_client_access_token, debug=True):
         # Set debug mode to indicate whether to log full response from wit.ai
         self._debug = debug
@@ -209,7 +208,8 @@ def get_answer(question):
 
     # Update state.
     agent.add_to_history(preprocessed_question)
-    new_qud = get_new_qud(agent.q_history(), agent.qud(), preprocessed_question)
+    new_qud = get_new_qud(agent.q_history(), agent.qud(),
+                          preprocessed_question)
     agent.update_qud(new_qud)
 
     # Answer the question.
@@ -222,7 +222,10 @@ def get_answer(question):
 def ask():
     """Expects a posted JSON object with a field called 'question' that contains user's question."""
     data = request.get_json()
-    question = data["question"]
+    question = data.get("question")
+    if not question:
+        return "Error: Bad JSON. Needs question field."
+
     answer = get_answer(question)
     return answer
 

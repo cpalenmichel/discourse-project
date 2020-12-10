@@ -1,8 +1,13 @@
 // change the theme
+
+$primary-color: #7ba4f1;
+$secondary-color: #b8b8ff;
+$light-color: #f8f7ff;
+
 $theme-colors: (
-  'primary': #9381ff,
-  'secondary': #b8b8ff,
-  'light': #f8f7ff,
+  'primary': $primary-color,
+  'secondary': $secondary-color,
+  'light': $light-color,
 );
 
 // Import Bootstrap and its default variables
@@ -15,6 +20,7 @@ body {
     sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  background-color: $light-color;
 }
 
 code {
@@ -62,4 +68,9 @@ header {
   max-height: 440px;
   overflow-y: auto;
   padding: 5px;
+}
+
+ul {
+  padding: 1rem;
+  list-style: none;
 }
