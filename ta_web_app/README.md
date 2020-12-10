@@ -6,7 +6,7 @@ Built with React and Redux and requires Node.js (https://nodejs.org/en/) to run.
 
 ### Run the app
 
-Run on the command line with: 
+After installing Node.js, restart your terminal. Then run: 
 
 `npm install` to install dependencies.
 
