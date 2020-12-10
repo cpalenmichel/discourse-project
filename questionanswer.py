@@ -87,11 +87,22 @@ class Preprocessor:
 
 def main():
     parser = ArgumentParser()
-    parser.add_argument("text", help="A single text file to be used as the reference material")
+    parser.add_argument(
+        "text", help="A single text file to be used as the reference material"
+    )
     parser.add_argument("question", help="The question that you want answered")
-    parser.add_argument("--best", action="store_true", default=False, help="Gives most similar sentence")
-    parser.add_argument("--top-sents", action="store_true", default=False, help="Gives best n sentences")
-    parser.add_argument("--chunks", action="store_true", default=False, help="Gives best chunks with window around sents")
+    parser.add_argument(
+        "--best", action="store_true", default=False, help="Gives most similar sentence"
+    )
+    parser.add_argument(
+        "--top-sents", action="store_true", default=False, help="Gives best n sentences"
+    )
+    parser.add_argument(
+        "--chunks",
+        action="store_true",
+        default=False,
+        help="Gives best chunks with window around sents",
+    )
     parser.add_argument("--n", type=int, default=3, help="Number of chunks to use")
     parser.add_argument("--window-size", type=int, default=25)
     args = parser.parse_args()
