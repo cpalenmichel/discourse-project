@@ -1,14 +1,16 @@
 {
-  "greeting": ["Hello!", "Hi!", "Hello.", "Hi."],
-  "grades": ["Sorry, I can't help you with grades. Please speak with a TA."],
-  "assignment": ["Sorry, I can't talk about specific assignments. Please speak with a TA."],
+  "greeting": ["Hello!", "Hi!", "Hello.", "Hi.", "Greetings!"],
+  "grades": ["Sorry, I can't help you with grades. Please speak with a TA for those. You can ask me general quesitons about the class material, if that would help?"],
+  "assignment": ["Sorry, I can't talk about specific assignments. Please speak with a TA for those. You can ask me general quesitons about the class material, if that would help?"],
   "exit": ["Ok, goodbye!"],
-  "fallback": ["Sorry, I'm confused by that. I don't know how to respond."],
-  "name": ["I'm ATAM! A TA chatbot :)", "My name is ATAM, what's yours?"],
+  "fallback": ["Sorry, I'm confused by that. I don't know how to respond. Please try asking me general questions about the class material, one question at a time."],
+  "name": ["I'm ATAM! A TA chatbot :)  You can ask me general quesitons about the class material.", "My name is ATAM, what's yours?  You can ask me general quesitons about the class material."],
   "personal": ["pretty well, how are you?", "not too bad, what can I help you with?",
-    "Really good actually, what can i do for you?", "I am doing great!"],
+    "Really good actually, what can i do for you?", "I am doing great!  How can I help?"],
   "weather": ["Yeah, it's sunny here! What can I help you with?",
     "It's kinda rainy where I am. What can I do for you?",
-  "I don't experience weather much since I'm just a bot. What can I help you with today?"],
-  "time_related": ["it was good. How was your weekend?", "alright, how's your day going?"]
+  "I don't experience weather much since I'm just a bot. What can I help you with today?", "There's actually a lot of snow here today.  How can I help you?"],
+  "time_related": ["it was good. How was your weekend?", "alright, how's your day going?", "Pretty good, thanks!  How can I help you?"],
+  "want_ta": ["The TA will arrive to help as soon as possible.  In the meantime, you can ask me general questions about the class material, or just ask to leave."],
+  "multi_question": ["Please ask your questions one at a time and I'll do my best to answer them!"]
 }

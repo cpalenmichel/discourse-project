@@ -10,6 +10,7 @@ The app sends back an answer as a string.
 """
 import os
 from typing import Optional, Dict, List
+from collections import defaultdict
 
 from sentence_transformers import SentenceTransformer
 from wit import Wit
@@ -45,11 +46,14 @@ class Agent:
         self._debug = debug
         self._q_history = []
         self._last_q = ""
+        self._last_intent = ""
         self._qud = ""
         self._wit = Wit(atam_client_access_token)
         # track whatever state the agent is currently in
         self.current_state = self.INTRO
         self.responses = []
+        # track inputs stored by intent
+        self.log = defaultdict(list)
 
         # Provides a dictionary from intentions to hardcoded responses.
         with open("responses.json", encoding="utf8") as fp:
@@ -100,6 +104,9 @@ class Agent:
 
     def last_q(self):
         return self._last_q
+    
+    def last_intent(self):
+        return self._last_intent
 
     def qud(self):
         return self._qud
@@ -117,6 +124,9 @@ class Agent:
         intent = Agent.get_most_likely_intent(response)
         intent_name = intent["name"]
         intent_confidence = intent["confidence"]
+        
+        #log the question, storing based on intent
+        self.log[intent_name].append(question)
 
         # Log the full response from wit.ai if in debug mode.
         if self._debug:
@@ -124,14 +134,16 @@ class Agent:
             print(self)
             print(response)
 
-        self._last_q = question
+        if intent_name not in ("yes", "no"):
+            self._last_q = question
+            self._last_intent = intent_name
 
         # Return hardcoded responses.
         if intent_name in self._hardcoded_responses:
+            if intent_name == self.EXIT_INTENT:
+                # TODO handle quitting behavior
+                self.log_conversation()
             return random.choice(self._hardcoded_responses[intent_name])
-        elif intent_name == self.EXIT_INTENT:
-            # TODO handle quitting behavior
-            pass
         elif intent_name == self.QUESTION_INTENT:
             return self.first_question_response_attempt(response)
         elif intent_name in self.YES_NO_INTENTS and self.current_state == self.QA_FOLLOW_UP:
@@ -163,11 +175,20 @@ class Agent:
             return f"I found this in the course materials: \"\n {self.responses.pop(0)}\n\n\" Is that helpful?"
         elif intent_name == self.NO_INTENT and not self.responses:
             self.current_state = self.NEUTRAL
+            
+            
+            # Log that we failed to answerethe question
+            self.log[self.last_intent()][len(self.log[self.last_intent()]) - 1] = self.log[self.last_intent()][len(self.log[self.last_intent()]) - 1] + "\t\t(I didn't answer this one)"
+            
             return "Sorry I couldn't answer that. I'm still learning. What else can I do for you?"
         else:
             # Clear responses, since question answered
             self.responses = []
             self.current_state = self.NEUTRAL
+            
+            # Log that we believe we answered the question
+            self.log[self.last_intent()][len(self.log[self.last_intent()]) - 1] = self.log[self.last_intent()][len(self.log[self.last_intent()]) - 1] + "\t\t(I think I answered this one)"
+            
             return "great, glad it helped!"
 
     def lookup_reference_answer(self, entities: Optional[Dict]) -> Optional[List[str]]:
@@ -185,6 +206,16 @@ class Agent:
                 return self.search.query_top_chunks(search_query, window_size=3, chunks=3)
         return None
 
+    def log_conversation(self):
+        file= open("./conversation_summary.txt", "w+")
+        conversation = self.log.items()
+        for key, value in conversation:
+            if (key not in ("yes", "no", "exit", "fallback")):
+                file.write(key.upper() + ":\n")
+                for entry in value:
+                    file.write("\t" + entry + "\n")
+                file.write("\n")
+        file.close()
 
 agent = Agent(atam_client_access_token="WVYVUAYCY4BVTT5JYA6TAWLYCZQXHEHH")
 
