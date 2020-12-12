@@ -47,6 +47,7 @@ class Agent:
         self._q_history = []
         self._last_q = ""
         self._last_intent = ""
+        # store the current question and the general topic as a tuple
         self._qud = ("", "")
         self._wit = Wit(atam_client_access_token)
         # track whatever state the agent is currently in
@@ -246,10 +247,6 @@ def preprocess(text, qud):
     pronouns = {"it", "they", "them", "their", "itself", "themselves", "themself"}
     
     words = set(text.split())
-    
-    print("RIGHT HERE")
-    print(pronouns.intersection(words))
-    print(len(pronouns.intersection(words)))
     
     if len(pronouns.intersection(words)) > 0:
         text = text + " " + qud[1]
