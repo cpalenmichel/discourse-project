@@ -47,7 +47,7 @@ class Agent:
         self._q_history = []
         self._last_q = ""
         self._last_intent = ""
-        self._qud = ""
+        self._qud = ("", "")
         self._wit = Wit(atam_client_access_token)
         # track whatever state the agent is currently in
         self.current_state = self.INTRO
@@ -128,15 +128,19 @@ class Agent:
         #log the question, storing based on intent
         self.log[intent_name].append(question)
 
+        if intent_name not in ("yes", "no"):
+            self._last_q = question
+            self._last_intent = intent_name
+            
+            # Update the QUD
+            new_qud = self.get_new_qud(question, response)
+            self.update_qud(new_qud)
+
         # Log the full response from wit.ai if in debug mode.
         if self._debug:
             print("Agent State:")
             print(self)
             print(response)
-
-        if intent_name not in ("yes", "no"):
-            self._last_q = question
-            self._last_intent = intent_name
 
         # Return hardcoded responses.
         if intent_name in self._hardcoded_responses:
@@ -217,6 +221,21 @@ class Agent:
                 file.write("\n")
         file.close()
 
+    def get_new_qud(self, question, response):
+        """Given the most recent question and the Wit.ai analysis of it, return the predicted new QUD."""
+        old_qud = self.qud()
+        old_topic = set(old_qud[1].split())
+        new_topic = set(response["entities"]["wit$search_query:search_query"][0]["value"].split())
+        overlap = old_topic.intersection(new_topic)
+        
+        # if the previous and current question topics overlap in some way, treat that overlap as the overall topic
+        if len(overlap) > 0:
+            topic = " ".join(overlap)
+        else:
+            topic = response["entities"]["wit$search_query:search_query"][0]["value"]
+            
+        return (question, topic)
+
 agent = Agent(atam_client_access_token="WVYVUAYCY4BVTT5JYA6TAWLYCZQXHEHH")
 
 
@@ -224,13 +243,18 @@ def preprocess(text, qud):
     """TODO Remove stopwords, punctuation, stem/lemmatize, rephrase, etc.
     Maybe use qud to add evocative words that will give better results...
     """
+    pronouns = {"it", "they", "them", "their", "itself", "themselves", "themself"}
+    
+    words = set(text.split())
+    
+    print("RIGHT HERE")
+    print(pronouns.intersection(words))
+    print(len(pronouns.intersection(words)))
+    
+    if len(pronouns.intersection(words)) > 0:
+        text = text + " " + qud[1]
+    
     return text
-
-
-def get_new_qud(q_history, curr_qud, question):
-    """TODO Given a dialogue history, the current QUD, and a new question, return the predicted new QUD."""
-
-    return curr_qud
 
 
 def get_answer(question):
@@ -239,9 +263,6 @@ def get_answer(question):
 
     # Update state.
     agent.add_to_history(preprocessed_question)
-    new_qud = get_new_qud(agent.q_history(), agent.qud(),
-                          preprocessed_question)
-    agent.update_qud(new_qud)
 
     # Answer the question.
     answer = agent.answer(preprocessed_question)
