@@ -34,6 +34,7 @@ class Agent:
     YES_INTENT = "yes"
     NO_INTENT = "no"
     YES_NO_INTENTS = {YES_INTENT, NO_INTENT}
+    FALLBACK_INTENT = "fallback"
     # Discourse States:
     # Track whether we're in special states in conversation.
     # QA follow up, after we've just answered a question, seeing if should try another.
@@ -126,10 +127,19 @@ class Agent:
         intent_name = intent["name"]
         intent_confidence = intent["confidence"]
         
+        # If the question has anaphora and is either a question or unknown intent, add our best guess at anaphora resolution and reprocess the question
+        if (intent_name in (self.QUESTION_INTENT, self.FALLBACK_INTENT)) and (self.anaphora_detection(question)):
+            question = self.anaphora_resolution(question)
+            response = self._wit.message(question)
+            
+            intent = Agent.get_most_likely_intent(response)
+            intent_name = intent["name"]
+            intent_confidence = intent["confidence"]
+        
         #log the question, storing based on intent
         self.log[intent_name].append(question)
 
-        if intent_name not in ("yes", "no"):
+        if intent_name not in self.YES_NO_INTENTS:
             self._last_q = question
             self._last_intent = intent_name
             
@@ -224,19 +234,35 @@ class Agent:
 
     def get_new_qud(self, question, response):
         """Given the most recent question and the Wit.ai analysis of it, return the predicted new QUD."""
-        old_qud = self.qud()
-        old_topic = set(old_qud[1].split())
-        new_topic = set(response["entities"]["wit$search_query:search_query"][0]["value"].split())
-        overlap = old_topic.intersection(new_topic)
+        # Only determine topic overlap for questions
+        if self.last_intent() == self.QUESTION_INTENT:
+            old_qud = self.qud()
+            old_topic = set(old_qud[1].split())
+            
+            new_topic = set(response["entities"]["wit$search_query:search_query"][0]["value"].split())
+            overlap = old_topic.intersection(new_topic)
         
-        # if the previous and current question topics overlap in some way, treat that overlap as the overall topic
-        if len(overlap) > 0:
-            topic = " ".join(overlap)
+            # if the previous and current question topics overlap in some way, treat that overlap as the overall topic
+            if len(overlap) > 0:
+                topic = " ".join(overlap)
+            else:
+                topic = response["entities"]["wit$search_query:search_query"][0]["value"]
         else:
-            topic = response["entities"]["wit$search_query:search_query"][0]["value"]
+            topic = self.last_intent()
             
         return (question, topic)
-
+    
+    def anaphora_detection(self, text):
+        """Given the text of a question, return whether or not it requires entity resolution"""
+        pronouns = {"it", "they", "them", "their", "itself", "themselves", "themself"}
+        words = set(text.split())
+        
+        return len(pronouns.intersection(words)) > 0
+    
+    def anaphora_resolution(self, text):
+        """Given the text of a question, return the question with the addition of the current topic"""
+        return text + " " + self.qud()[1]
+    
 agent = Agent(atam_client_access_token="WVYVUAYCY4BVTT5JYA6TAWLYCZQXHEHH")
 
 
@@ -244,13 +270,6 @@ def preprocess(text, qud):
     """TODO Remove stopwords, punctuation, stem/lemmatize, rephrase, etc.
     Maybe use qud to add evocative words that will give better results...
     """
-    pronouns = {"it", "they", "them", "their", "itself", "themselves", "themself"}
-    
-    words = set(text.split())
-    
-    if len(pronouns.intersection(words)) > 0:
-        text = text + " " + qud[1]
-    
     return text
 
 
