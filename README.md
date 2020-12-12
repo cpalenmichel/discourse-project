@@ -31,7 +31,13 @@ To start the React UI and speak with ATAM through the browser, run:
 
 `sh start_atam.sh`
 
-which will start the dialogue agent and the React app simultaneously.
+which will start the dialogue agent and the React app simultaneously. Note: This doesn't work on the default Windows command prompt because `&` waits for the first web app to stop running before opening the second. If using the Windows command prompt, open two prompts in the root directory and run on one:
+
+`npm start --prefix ta_web_app`
+
+and run on the other:
+
+`python qa_web_app.py`
 
 ## Installation
 
