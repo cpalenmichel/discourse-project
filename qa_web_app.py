@@ -30,6 +30,7 @@ REFERENCE_TEXT_PATH = "data/cleaned_jurafsky_and_martin.txt"
 
 class Agent:
     QUESTION_INTENT = "question"
+    MULTI_INTENT = "multi_question"
     EXIT_INTENT = "exit"
     YES_INTENT = "yes"
     NO_INTENT = "no"
@@ -41,6 +42,9 @@ class Agent:
     QA_FOLLOW_UP = "QA-ing"
     INTRO = "intro"
     NEUTRAL = "neutral"
+    MULTI = "multi_question"
+    FIRST_OF_MULTI = "first_of_multi"
+    PENDING_FOLLOW_UP = "pending_follow_up"
 
     def __init__(self, atam_client_access_token, debug=True):
         # Set debug mode to indicate whether to log full response from wit.ai
@@ -51,6 +55,8 @@ class Agent:
         # store the current question and the general topic as a tuple
         self._qud = ("", "")
         self._wit = Wit(atam_client_access_token)
+        # store pending questions to be discussed
+        self.pending_Qs = []
         # track whatever state the agent is currently in
         self.current_state = self.INTRO
         self.responses = []
@@ -116,6 +122,9 @@ class Agent:
     def update_qud(self, new_qud):
         self._qud = new_qud
 
+    def pending_Qs(self):
+        return self.pending_Qs
+
     def answer(self, question):
         # TODO use dialogue state and QUD and QA to produce good answers.
 
@@ -136,6 +145,11 @@ class Agent:
             intent_name = intent["name"]
             intent_confidence = intent["confidence"]
         
+        if intent_name == self.MULTI_INTENT:
+            self.current_state = self.MULTI
+            return "Ok! Please list all your questions separated by '?'"
+
+
         #log the question, storing based on intent
         self.log[intent_name].append(question)
 
@@ -159,6 +173,12 @@ class Agent:
                 # TODO handle quitting behavior
                 self.log_conversation()
             return random.choice(self._hardcoded_responses[intent_name])
+        elif intent_name == self.YES_INTENT and self.current_state == self.PENDING_FOLLOW_UP:
+            response = self._wit.message(self.pending_Qs[0])
+            self.pending_Qs.pop(0)
+            return self.first_question_response_attempt(response)
+        elif intent_name == self.NO_INTENT and self.current_state == self.PENDING_FOLLOW_UP:
+            return "OK! What's next?"
         elif intent_name == self.QUESTION_INTENT:
             return self.first_question_response_attempt(response)
         elif intent_name in self.YES_NO_INTENTS and self.current_state == self.QA_FOLLOW_UP:
@@ -172,15 +192,27 @@ class Agent:
 
         return "Yes. " + question
 
+
+
     def first_question_response_attempt(self, response):
         """Student asked a question. Do a search for a relevant answer."""
         entities: Optional[Dict] = response.get("entities", None)
         self.responses.extend(self.lookup_reference_answer(entities))
-        if self.responses:
-            self.current_state = self.QA_FOLLOW_UP
-            return f"I found this in the course materials: \"\n {self.responses.pop(0)}\n\n\" Is that helpful?"
-        # if we couldn't return a chunk from the reference material, bail
-        return "Sorry, I couldn't seem to find a good answer for your question."
+        if self.current_state == self.FIRST_OF_MULTI:
+            if self.responses:
+                self.current_state = self.QA_FOLLOW_UP
+                return f"Your first question was \"" + self.pending_Qs.pop(0) + f"\"\n I found this in the course materials: \"\n {self.responses.pop(0)}\n\n\" Is that helpful?"
+            # if we couldn't return a chunk from the reference material, bail
+            if len(self.pending_Qs) != 0:
+                self.current_state = self.PENDING_FOLLOW_UP
+                return "Sorry, I couldn't seem to find a good answer for your first question. Your next question was \"" + self.pending_Qs[0] + "\"\n Would you like me to talk about that?"
+            return "Sorry, I couldn't seem to find a good answer for your first question."
+        else:
+            if self.responses:
+                self.current_state = self.QA_FOLLOW_UP
+                return f"I found this in the course materials: \"\n {self.responses.pop(0)}\n\n\" Is that helpful?"
+            # if we couldn't return a chunk from the reference material, bail
+            return "Sorry, I couldn't seem to find a good answer for your question."
 
     def qa_follow_up(self, intent_name):
         """
@@ -194,7 +226,10 @@ class Agent:
             
             # Log that we failed to answerethe question
             self.log[self.last_intent()][len(self.log[self.last_intent()]) - 1] = self.log[self.last_intent()][len(self.log[self.last_intent()]) - 1] + "\t\t(I didn't answer this one)"
-            
+            if len(self.pending_Qs) != 0:
+                self.current_state = self.PENDING_FOLLOW_UP
+                return "Sorry, I couldn't seem to find a good answer for your question. Your next question was \"" + self.pending_Qs[0] + "\"\n Would you like me to talk about that?"
+            self.current_state = self.NEUTRAL
             return "Sorry I couldn't answer that. I'm still learning. What else can I do for you?"
         else:
             # Clear responses, since question answered
@@ -203,7 +238,10 @@ class Agent:
             
             # Log that we believe we answered the question
             self.log[self.last_intent()][len(self.log[self.last_intent()]) - 1] = self.log[self.last_intent()][len(self.log[self.last_intent()]) - 1] + "\t\t(I think I answered this one)"
-            
+            if len(self.pending_Qs) != 0:
+                self.current_state = self.PENDING_FOLLOW_UP
+                return "great, glad it helped!. Your next question was \"" + self.pending_Qs[0] + "\"\n Would you like me to talk about that?"
+            self.current_state = self.NEUTRAL
             return "great, glad it helped!"
 
     def lookup_reference_answer(self, entities: Optional[Dict]) -> Optional[List[str]]:
@@ -270,6 +308,20 @@ def preprocess(text, qud):
     """TODO Remove stopwords, punctuation, stem/lemmatize, rephrase, etc.
     Maybe use qud to add evocative words that will give better results...
     """
+    if agent.current_state == agent.MULTI:
+        text = text.strip()
+        if text[-1] == '?':
+            text = text[:-1]
+        questions = text.split('?')
+        for q in questions:
+            agent.pending_Qs.append(q)
+        agent.current_state = agent.FIRST_OF_MULTI
+        return agent.pending_Qs[0]
+
+    punct = ['!', ',', '.', ':', ';']
+    text = [c for c in text if not c in punct]
+    text = "".join(text)
+
     return text
 
 
