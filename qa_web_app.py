@@ -47,21 +47,10 @@ class Agent:
     PENDING_FOLLOW_UP = "pending_follow_up"
 
     def __init__(self, atam_client_access_token, debug=True):
+        self.reset_state()
+        self._wit = Wit(atam_client_access_token)
         # Set debug mode to indicate whether to log full response from wit.ai
         self._debug = debug
-        self._q_history = []
-        self._last_q = ""
-        self._last_intent = ""
-        # store the current question and the general topic as a tuple
-        self._qud = ("", "")
-        self._wit = Wit(atam_client_access_token)
-        # store pending questions to be discussed
-        self.pending_Qs = []
-        # track whatever state the agent is currently in
-        self.current_state = self.INTRO
-        self.responses = []
-        # track inputs stored by intent
-        self.log = defaultdict(list)
 
         # Provides a dictionary from intentions to hardcoded responses.
         with open("responses.json", encoding="utf8") as fp:
@@ -82,6 +71,22 @@ class Agent:
         else:
             print("Loading the index")
             self.search.load("data")
+
+    def reset_state(self):
+        """Reset dialog state. Called on initialization and when the user types 'exit' or otherwise indicates exit intent"""
+        self._q_history = []
+        self._last_q = ""
+        self._last_intent = ""
+        # store the current question and the general topic as a tuple
+        self._qud = ("", "")
+
+        # store pending questions to be discussed
+        self.pending_Qs = []
+        # track whatever state the agent is currently in
+        self.current_state = self.INTRO
+        self.responses = []
+        # track inputs stored by intent
+        self.log = defaultdict(list)
 
     def __str__(self):
         return json.dumps(
@@ -112,7 +117,7 @@ class Agent:
 
     def last_q(self):
         return self._last_q
-    
+
     def last_intent(self):
         return self._last_intent
 
@@ -126,7 +131,7 @@ class Agent:
         return self.pending_Qs
 
     def answer(self, question):
-        # TODO use dialogue state and QUD and QA to produce good answers.
+        # use dialogue state and QUD and QA to produce good answers.
 
         # Send the preprocessed question to wit.ai
         response = self._wit.message(question)
@@ -135,28 +140,27 @@ class Agent:
         intent = Agent.get_most_likely_intent(response)
         intent_name = intent["name"]
         intent_confidence = intent["confidence"]
-        
+
         # If the question has anaphora and is either a question or unknown intent, add our best guess at anaphora resolution and reprocess the question
         if (intent_name in (self.QUESTION_INTENT, self.FALLBACK_INTENT)) and (self.anaphora_detection(question)):
             question = self.anaphora_resolution(question)
             response = self._wit.message(question)
-            
+
             intent = Agent.get_most_likely_intent(response)
             intent_name = intent["name"]
             intent_confidence = intent["confidence"]
-        
+
         if intent_name == self.MULTI_INTENT:
             self.current_state = self.MULTI
             return "Ok! Please list all your questions separated by '?'"
 
-
-        #log the question, storing based on intent
+        # log the question, storing based on intent
         self.log[intent_name].append(question)
 
         if intent_name not in self.YES_NO_INTENTS:
             self._last_q = question
             self._last_intent = intent_name
-            
+
             # Update the QUD
             new_qud = self.get_new_qud(question, response)
             self.update_qud(new_qud)
@@ -170,8 +174,8 @@ class Agent:
         # Return hardcoded responses.
         if intent_name in self._hardcoded_responses:
             if intent_name == self.EXIT_INTENT:
-                # TODO handle quitting behavior
                 self.log_conversation()
+                self.reset_state()
             return random.choice(self._hardcoded_responses[intent_name])
         elif intent_name == self.YES_INTENT and self.current_state == self.PENDING_FOLLOW_UP:
             response = self._wit.message(self.pending_Qs[0])
@@ -191,8 +195,6 @@ class Agent:
         """
 
         return "Yes. " + question
-
-
 
     def first_question_response_attempt(self, response):
         """Student asked a question. Do a search for a relevant answer."""
@@ -222,10 +224,10 @@ class Agent:
             return f"I found this in the course materials: \"\n {self.responses.pop(0)}\n\n\" Is that helpful?"
         elif intent_name == self.NO_INTENT and not self.responses:
             self.current_state = self.NEUTRAL
-            
-            
+
             # Log that we failed to answerethe question
-            self.log[self.last_intent()][len(self.log[self.last_intent()]) - 1] = self.log[self.last_intent()][len(self.log[self.last_intent()]) - 1] + "\t\t(I didn't answer this one)"
+            self.log[self.last_intent()][len(self.log[self.last_intent()]) - 1] = self.log[self.last_intent()
+                                                                                           ][len(self.log[self.last_intent()]) - 1] + "\t\t(I didn't answer this one)"
             if len(self.pending_Qs) != 0:
                 self.current_state = self.PENDING_FOLLOW_UP
                 return "Sorry, I couldn't seem to find a good answer for your question. Your next question was \"" + self.pending_Qs[0] + "\"\n Would you like me to talk about that?"
@@ -235,9 +237,10 @@ class Agent:
             # Clear responses, since question answered
             self.responses = []
             self.current_state = self.NEUTRAL
-            
+
             # Log that we believe we answered the question
-            self.log[self.last_intent()][len(self.log[self.last_intent()]) - 1] = self.log[self.last_intent()][len(self.log[self.last_intent()]) - 1] + "\t\t(I think I answered this one)"
+            self.log[self.last_intent()][len(self.log[self.last_intent()]) - 1] = self.log[self.last_intent()
+                                                                                           ][len(self.log[self.last_intent()]) - 1] + "\t\t(I think I answered this one)"
             if len(self.pending_Qs) != 0:
                 self.current_state = self.PENDING_FOLLOW_UP
                 return "great, glad it helped!. Your next question was \"" + self.pending_Qs[0] + "\"\n Would you like me to talk about that?"
@@ -260,7 +263,7 @@ class Agent:
         return None
 
     def log_conversation(self):
-        file= open("./conversation_summary.txt", "w+")
+        file = open("./conversation_summary.txt", "w+")
         conversation = self.log.items()
         for key, value in conversation:
             if (key not in ("yes", "no", "exit", "fallback")):
@@ -276,10 +279,11 @@ class Agent:
         if self.last_intent() == self.QUESTION_INTENT:
             old_qud = self.qud()
             old_topic = set(old_qud[1].split())
-            
-            new_topic = set(response["entities"]["wit$search_query:search_query"][0]["value"].split())
+
+            new_topic = set(
+                response["entities"]["wit$search_query:search_query"][0]["value"].split())
             overlap = old_topic.intersection(new_topic)
-        
+
             # if the previous and current question topics overlap in some way, treat that overlap as the overall topic
             if len(overlap) > 0:
                 topic = " ".join(overlap)
@@ -287,26 +291,28 @@ class Agent:
                 topic = response["entities"]["wit$search_query:search_query"][0]["value"]
         else:
             topic = self.last_intent()
-            
+
         return (question, topic)
-    
+
     def anaphora_detection(self, text):
         """Given the text of a question, return whether or not it requires entity resolution"""
-        pronouns = {"it", "they", "them", "their", "itself", "themselves", "themself"}
+        pronouns = {"it", "they", "them", "their",
+                    "itself", "themselves", "themself"}
         words = set(text.split())
-        
+
         return len(pronouns.intersection(words)) > 0
-    
+
     def anaphora_resolution(self, text):
         """Given the text of a question, return the question with the addition of the current topic"""
         return text + " " + self.qud()[1]
-    
+
+
 agent = Agent(atam_client_access_token="WVYVUAYCY4BVTT5JYA6TAWLYCZQXHEHH")
 
 
 def preprocess(text, qud):
-    """TODO Remove stopwords, punctuation, stem/lemmatize, rephrase, etc.
-    Maybe use qud to add evocative words that will give better results...
+    """
+    Preprocess text before sending to agent.
     """
     if agent.current_state == agent.MULTI:
         text = text.strip()

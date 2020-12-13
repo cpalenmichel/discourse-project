@@ -15,23 +15,27 @@ const About = () => {
       </p>
       <p className='text-justify'>
         He can also chat about the weather, how things are going, and how his
-        weekend was.
+        weekend was. You can say <code>I have five questions</code> and ATAM
+        will prompt you to ask them all in one message, separated by question
+        marks.
       </p>
       <p>
-        You can ask him questions like (
-        <strong>todo: replace questions with ones that work really well</strong>
-        ):
+        You can ask him questions like:
         <ul>
           <li>
-            <code>What is an HMM?</code>
+            <code>How are you?</code>
           </li>
           <li>
-            <code>What is a syntax tree?</code>
+            <code>How is the weather?</code>
           </li>
           <li>
-            <code>How many parts of speech tags are there?</code>
+            <code>What is your name?</code>
           </li>
         </ul>
+      </p>
+      <p>
+        <strong>Note:</strong> If ATAM tells you he's having a network error, it
+        means the Python server isn't running.
       </p>
     </div>
   );
