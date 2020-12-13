@@ -36,6 +36,8 @@ class Agent:
     NO_INTENT = "no"
     YES_NO_INTENTS = {YES_INTENT, NO_INTENT}
     FALLBACK_INTENT = "fallback"
+    GRADES = "grades"
+    ASSIGNMENT = "assignment"
     # Discourse States:
     # Track whether we're in special states in conversation.
     # QA follow up, after we've just answered a question, seeing if should try another.
@@ -171,16 +173,50 @@ class Agent:
             print(self)
             print(response)
 
-        # Return hardcoded responses.
-        if intent_name in self._hardcoded_responses:
+        # if it's a yes and we're waiting on follow up for pending Qs --- OR --- if this is the first of many pending Qs
+        if intent_name == self.YES_INTENT and self.current_state == self.PENDING_FOLLOW_UP or self.current_state == self.FIRST_OF_MULTI:
+            # run the relevant Q through wit
+            response = self._wit.message(self.pending_Qs[0])
+            intent = Agent.get_most_likely_intent(response)
+            intent_name = intent["name"]
+            # if it's not the first pop, because it won't be popped later
+            if self.current_state != self.FIRST_OF_MULTI:
+                self.pending_Qs.pop(0)
+            # if it's a regular old question, send to the QA procedure
+            if intent_name == self.QUESTION_INTENT:
+                return self.first_question_response_attempt(response)
+            # if it's not a regular QA
+            else:
+                # if it's grades and there are more to come
+                if intent_name == self.GRADES and len(self.pending_Qs) != 0:
+                    # do the popping now
+                    if self.current_state == self.FIRST_OF_MULTI:
+                        self.pending_Qs.pop(0)
+                    # respond and prompt for next Q
+                    self.current_state = self.PENDING_FOLLOW_UP
+                    return "Sorry, I can't help you with grades. You'll have to talk with the TA. Your next question was \"" + self.pending_Qs[0] + "\"\n Would you like me to talk about that?"
+                # if it's assignments and there are more to come
+                elif intent_name == self.ASSIGNMENT and len(self.pending_Qs) != 0: 
+                    # do the popping now
+                    if self.current_state == self.FIRST_OF_MULTI:
+                        self.pending_Qs.pop(0)
+                    # respond and prompt for next Q
+                    self.current_state = self.PENDING_FOLLOW_UP
+                    return "Sorry, I can't help you with the assignment. You'll have to talk with the TA. Your next question was \"" + self.pending_Qs[0] + "\"\n Would you like me to talk about that?"
+                # otherwise, use the hard coded responses
+                else: 
+                    # do the popping now
+                    if self.current_state == self.FIRST_OF_MULTI:
+                        self.pending_Qs.pop(0)
+                    # return the hard coded response
+                    return random.choice(self._hardcoded_responses[intent_name])
+        # get hardcoded response, make log if exit
+        elif intent_name in self._hardcoded_responses:
             if intent_name == self.EXIT_INTENT:
                 self.log_conversation()
                 self.reset_state()
             return random.choice(self._hardcoded_responses[intent_name])
-        elif intent_name == self.YES_INTENT and self.current_state == self.PENDING_FOLLOW_UP:
-            response = self._wit.message(self.pending_Qs[0])
-            self.pending_Qs.pop(0)
-            return self.first_question_response_attempt(response)
+        # if they responded no to wanting to discuss a pending Q 
         elif intent_name == self.NO_INTENT and self.current_state == self.PENDING_FOLLOW_UP:
             return "OK! What's next?"
         elif intent_name == self.QUESTION_INTENT:
@@ -228,6 +264,7 @@ class Agent:
             # Log that we failed to answerethe question
             self.log[self.last_intent()][len(self.log[self.last_intent()]) - 1] = self.log[self.last_intent()
                                                                                            ][len(self.log[self.last_intent()]) - 1] + "\t\t(I didn't answer this one)"
+            # if there are pending Qs, prompt
             if len(self.pending_Qs) != 0:
                 self.current_state = self.PENDING_FOLLOW_UP
                 return "Sorry, I couldn't seem to find a good answer for your question. Your next question was \"" + self.pending_Qs[0] + "\"\n Would you like me to talk about that?"
@@ -241,6 +278,7 @@ class Agent:
             # Log that we believe we answered the question
             self.log[self.last_intent()][len(self.log[self.last_intent()]) - 1] = self.log[self.last_intent()
                                                                                            ][len(self.log[self.last_intent()]) - 1] + "\t\t(I think I answered this one)"
+            # if there are pendign Qs, prompt
             if len(self.pending_Qs) != 0:
                 self.current_state = self.PENDING_FOLLOW_UP
                 return "great, glad it helped!. Your next question was \"" + self.pending_Qs[0] + "\"\n Would you like me to talk about that?"
@@ -314,21 +352,27 @@ def preprocess(text, qud):
     """
     Preprocess text before sending to agent.
     """
-    if agent.current_state == agent.MULTI:
-        text = text.strip()
-        if text[-1] == '?':
-            text = text[:-1]
-        questions = text.split('?')
-        for q in questions:
-            agent.pending_Qs.append(q)
-        agent.current_state = agent.FIRST_OF_MULTI
-        return agent.pending_Qs[0]
 
+    text = text.strip()
+
+    # remove extra punct
     punct = ['!', ',', '.', ':', ';']
     text = [c for c in text if not c in punct]
     text = "".join(text)
 
-    return text
+    # delete last ? if there is a final one
+    if text[-1] == '?':
+        text = text[:-1]
+    # split input on ?
+    questions = text.split('?')
+    # if there is more than one question, add all to pending Qs
+    if len(questions) > 1:
+        for q in questions:
+            agent.pending_Qs.append(q)
+        agent.current_state = agent.FIRST_OF_MULTI
+        return agent.pending_Qs[0]
+    else: 
+        return text
 
 
 def get_answer(question):
