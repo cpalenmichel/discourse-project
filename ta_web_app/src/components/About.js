@@ -31,6 +31,9 @@ const About = () => {
           <li>
             <code>What is your name?</code>
           </li>
+          <li>
+            <code>What is smoothing?</code>
+          </li>
         </ul>
       </p>
       <p>
