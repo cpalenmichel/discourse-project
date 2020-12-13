@@ -6,7 +6,12 @@ import axios from 'axios';
 
 const ChatState = (props) => {
   const initialState = {
-    messages: [],
+    messages: [
+      {
+        text: 'Hi there, welcome to office hours!',
+        sender: 'ATAM',
+      },
+    ],
   };
 
   const [state, dispatch] = useReducer(chatReducer, initialState);
