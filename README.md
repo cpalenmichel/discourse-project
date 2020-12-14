@@ -44,6 +44,8 @@ and run on the other:
 
 `python qa_web_app.py`
 
+You'll also need an acess token for ATAM to connect with WIT. If you need one contact one of the authors and they can provide you with an access token. 
+
 ## Installation
 
 To install, first create a fresh env and install the requirements.
