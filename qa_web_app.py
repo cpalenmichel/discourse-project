@@ -219,6 +219,10 @@ class Agent:
                     # do the popping now
                     if self.current_state == self.FIRST_OF_MULTI:
                         self.pending_Qs.pop(0)
+                        
+                    if len(self.pending_Qs)==0:
+                        self.current_state = self.NEUTRAL
+                    
                     # return the hard coded response
                     return random.choice(self._hardcoded_responses[intent_name])
         # get hardcoded response, make log if exit
