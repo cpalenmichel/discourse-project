@@ -3,11 +3,16 @@
 ## Authors
 
 Katie Krajovic
+
 Chester Palen-Michel
+
 Vicky Steger
+
 Julian Fernandez
 
 ## Description
+
+This project is a teaching assistant chatbot built as a final project for COSI233. 
 
 Our app consists of two services: a virtual TA dialogue agent named ATAM and a web interface.
 
