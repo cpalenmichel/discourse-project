@@ -360,17 +360,22 @@ def preprocess(text, qud):
     text = [c for c in text if not c in punct]
     text = "".join(text)
 
-    # delete last ? if there is a final one
-    if text[-1] == '?':
-        text = text[:-1]
-    # split input on ?
-    questions = text.split('?')
-    # if there is more than one question, add all to pending Qs
-    if len(questions) > 1:
-        for q in questions:
-            agent.pending_Qs.append(q)
-        agent.current_state = agent.FIRST_OF_MULTI
-        return agent.pending_Qs[0]
+    if text == "":
+        text = "!"
+
+
+    if len(text) > 1: 
+        # delete last ? if there is a final one
+        if text[-1] == '?':
+            text = text[:-1]
+        # split input on ?
+        questions = text.split('?')
+        # if there is more than one question, add all to pending Qs
+        if len(questions) > 1:
+            for q in questions:
+                agent.pending_Qs.append(q)
+            agent.current_state = agent.FIRST_OF_MULTI
+            return agent.pending_Qs[0]
     else: 
         return text
 
