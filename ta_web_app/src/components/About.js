@@ -19,23 +19,21 @@ const About = () => {
         will prompt you to ask them all in one message, separated by question
         marks.
       </p>
-      <p>
-        You can ask him questions like:
-        <ul>
-          <li>
-            <code>How are you?</code>
-          </li>
-          <li>
-            <code>How is the weather?</code>
-          </li>
-          <li>
-            <code>What is your name?</code>
-          </li>
-          <li>
-            <code>What is smoothing?</code>
-          </li>
-        </ul>
-      </p>
+      <p>You can ask him questions like:</p>
+      <ul>
+        <li>
+          <code>How are you?</code>
+        </li>
+        <li>
+          <code>How is the weather?</code>
+        </li>
+        <li>
+          <code>What is your name?</code>
+        </li>
+        <li>
+          <code>What is smoothing?</code>
+        </li>
+      </ul>
       <p>
         <strong>Note:</strong> If ATAM tells you he's having a network error, it
         means the Python server isn't running.

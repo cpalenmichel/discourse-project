@@ -157,7 +157,7 @@ class Agent:
             intent = Agent.get_most_likely_intent(response)
             intent_name = intent["name"]
             intent_confidence = intent["confidence"]
-        
+
         # log the question, storing based on intent
         self.log[intent_name].append(question)
 
@@ -185,19 +185,19 @@ class Agent:
             response = self._wit.message(self.pending_Qs[0])
             intent = Agent.get_most_likely_intent(response)
             intent_name = intent["name"]
-            
+
             # if it's not the first pop, because it won't be popped later
             if self.current_state != self.FIRST_OF_MULTI:
                 self.log[intent_name].append(self.pending_Qs[0])
-                
+
                 if intent_name not in self.YES_NO_INTENTS:
                     self._last_q = self.pending_Qs[0]
                     self._last_intent = intent_name
-        
+
                     # Update the QUD
                     new_qud = self.get_new_qud(self.pending_Qs[0], response)
                     self.update_qud(new_qud)
-            
+
                 self.pending_Qs.pop(0)
             # if it's a regular old question, send to the QA procedure
             if intent_name == self.QUESTION_INTENT:
@@ -213,7 +213,7 @@ class Agent:
                     self.current_state = self.PENDING_FOLLOW_UP
                     return "Sorry, I can't help you with grades. You'll have to talk with the TA. Your next question was \"" + self.pending_Qs[0] + "\"\n Would you like me to talk about that?"
                 # if it's assignments and there are more to come
-                elif intent_name == self.ASSIGNMENT and len(self.pending_Qs) != 0: 
+                elif intent_name == self.ASSIGNMENT and len(self.pending_Qs) != 0:
                     # do the popping now
                     if self.current_state == self.FIRST_OF_MULTI:
                         self.pending_Qs.pop(0)
@@ -221,14 +221,14 @@ class Agent:
                     self.current_state = self.PENDING_FOLLOW_UP
                     return "Sorry, I can't help you with the assignment. You'll have to talk with the TA. Your next question was \"" + self.pending_Qs[0] + "\"\n Would you like me to talk about that?"
                 # otherwise, use the hard coded responses
-                else: 
+                else:
                     # do the popping now
                     if self.current_state == self.FIRST_OF_MULTI:
                         self.pending_Qs.pop(0)
-                        
-                    if len(self.pending_Qs)==0:
+
+                    if len(self.pending_Qs) == 0:
                         self.current_state = self.NEUTRAL
-                    
+
                     # return the hard coded response
                     return random.choice(self._hardcoded_responses[intent_name])
         # get hardcoded response, make log if exit
@@ -237,7 +237,7 @@ class Agent:
                 self.log_conversation()
                 self.reset_state()
             return random.choice(self._hardcoded_responses[intent_name])
-        # if they responded no to wanting to discuss a pending Q 
+        # if they responded no to wanting to discuss a pending Q
         elif intent_name == self.NO_INTENT and self.current_state == self.PENDING_FOLLOW_UP:
             return "OK! What's next?"
         elif intent_name == self.QUESTION_INTENT:
@@ -360,7 +360,16 @@ class Agent:
         return text + " " + self.qud()[1]
 
 
-agent = Agent(atam_client_access_token="WVYVUAYCY4BVTT5JYA6TAWLYCZQXHEHH")
+try:
+    with open("atam_client_access_token.secret", encoding="utf8") as secret_file:
+        '''Please ensure'''
+        atam_client_access_token = secret_file.read()
+except:
+    print("ATAM Python service failed: Please include atam_client_access_token.secret in project root directory with Wit.AI client key")
+    exit(1)
+
+
+agent = Agent(atam_client_access_token=atam_client_access_token)
 
 
 def preprocess(text, qud):
@@ -374,7 +383,7 @@ def preprocess(text, qud):
     text = [c for c in text if not c in punct]
     text = "".join(text)
 
-    if len(text) > 1: 
+    if len(text) > 1:
         # delete last ? if there is a final one
         if text[-1] == '?':
             text = text[:-1]
@@ -386,7 +395,7 @@ def preprocess(text, qud):
                 q = q.strip()
                 agent.pending_Qs.append(q)
             agent.current_state = agent.FIRST_OF_MULTI
-            
+
             return agent.pending_Qs[0]
         else:
             return text
