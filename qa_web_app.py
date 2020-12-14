@@ -42,11 +42,17 @@ class Agent:
     # Track whether we're in special states in conversation.
     # QA follow up, after we've just answered a question, seeing if should try another.
     QA_FOLLOW_UP = "QA-ing"
+    # Initial state
     INTRO = "intro"
+    # Default state
     NEUTRAL = "neutral"
+    # The user has stated that they have multiple questions
     MULTI = "multi_question"
+    # Answering the first of multiple quesitons
     FIRST_OF_MULTI = "first_of_multi"
+    # After answering the first of multiple questions, with questions left unanswered
     PENDING_FOLLOW_UP = "pending_follow_up"
+    EMBEDDING_SIZE = 768    # Sentence embedding size
 
     def __init__(self, atam_client_access_token, debug=True):
         self.reset_state()
@@ -60,7 +66,7 @@ class Agent:
 
         # Similarity stuff
         model = SentenceTransformer("bert-base-nli-mean-tokens")
-        size = 768  # Sentence embedding size, probs shouldn't hardcode it but *shrug*
+        size = self.EMBEDDING_SIZE
         self.search = SimilaritySearch(model, size)
 
         if not os.path.exists("data/index.ann"):
@@ -239,12 +245,6 @@ class Agent:
         elif intent_name in self.YES_NO_INTENTS and self.current_state == self.QA_FOLLOW_UP:
             return self.qa_follow_up(intent_name)
 
-        """
-        ...TODO return whatever other message we think is right,
-        either by hardcoding more responses or by performing a text
-        search.
-        """
-
         return "Yes. " + question
 
     def first_question_response_attempt(self, response):
@@ -276,7 +276,7 @@ class Agent:
         elif intent_name == self.NO_INTENT and not self.responses:
             self.current_state = self.NEUTRAL
 
-            # Log that we failed to answerethe question
+            # Log that we failed to answere the question
             self.log[self.last_intent()][len(self.log[self.last_intent()]) - 1] = self.log[self.last_intent()
                                                                                            ][len(self.log[self.last_intent()]) - 1] + "\t\t(I didn't answer this one)"
             # if there are pending Qs, prompt
@@ -293,7 +293,7 @@ class Agent:
             # Log that we believe we answered the question
             self.log[self.last_intent()][len(self.log[self.last_intent()]) - 1] = self.log[self.last_intent()
                                                                                            ][len(self.log[self.last_intent()]) - 1] + "\t\t(I think I answered this one)"
-            # if there are pendign Qs, prompt
+            # if there are pending Qs, prompt
             if len(self.pending_Qs) != 0:
                 self.current_state = self.PENDING_FOLLOW_UP
                 return "great, glad it helped!. Your next question was \"" + self.pending_Qs[0] + "\"\n Would you like me to talk about that?"
