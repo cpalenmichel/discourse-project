@@ -151,13 +151,13 @@ class Agent:
             intent = Agent.get_most_likely_intent(response)
             intent_name = intent["name"]
             intent_confidence = intent["confidence"]
+        
+        # log the question, storing based on intent
+        self.log[intent_name].append(question)
 
         if intent_name == self.MULTI_INTENT:
             self.current_state = self.MULTI
             return "Ok! Please list all your questions separated by '?'"
-
-        # log the question, storing based on intent
-        self.log[intent_name].append(question)
 
         if intent_name not in self.YES_NO_INTENTS:
             self._last_q = question
@@ -179,8 +179,19 @@ class Agent:
             response = self._wit.message(self.pending_Qs[0])
             intent = Agent.get_most_likely_intent(response)
             intent_name = intent["name"]
+            
             # if it's not the first pop, because it won't be popped later
             if self.current_state != self.FIRST_OF_MULTI:
+                self.log[intent_name].append(self.pending_Qs[0])
+                
+                if intent_name not in self.YES_NO_INTENTS:
+                    self._last_q = self.pending_Qs[0]
+                    self._last_intent = intent_name
+        
+                    # Update the QUD
+                    new_qud = self.get_new_qud(self.pending_Qs[0], response)
+                    self.update_qud(new_qud)
+            
                 self.pending_Qs.pop(0)
             # if it's a regular old question, send to the QA procedure
             if intent_name == self.QUESTION_INTENT:
@@ -352,17 +363,12 @@ def preprocess(text, qud):
     """
     Preprocess text before sending to agent.
     """
-
     text = text.strip()
 
     # remove extra punct
     punct = ['!', ',', '.', ':', ';']
     text = [c for c in text if not c in punct]
     text = "".join(text)
-
-    if text == "":
-        text = "!"
-
 
     if len(text) > 1: 
         # delete last ? if there is a final one
@@ -373,17 +379,20 @@ def preprocess(text, qud):
         # if there is more than one question, add all to pending Qs
         if len(questions) > 1:
             for q in questions:
+                q = q.strip()
                 agent.pending_Qs.append(q)
             agent.current_state = agent.FIRST_OF_MULTI
+            
             return agent.pending_Qs[0]
-    else: 
-        return text
+        else:
+            return text
+    else:
+        return "!"
 
 
 def get_answer(question):
     """Return an answer, given a question. Preprocess question and update state as necessary."""
     preprocessed_question = preprocess(question, agent.qud())
-
     # Update state.
     agent.add_to_history(preprocessed_question)
 
